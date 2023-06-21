@@ -2,6 +2,7 @@ package com.jetxcrashking.game
 
 import android.annotation.SuppressLint
 import android.app.Dialog
+import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.view.MotionEvent
@@ -21,6 +22,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var runnable: Runnable
     private var isRunning = true
     private val projectiles: MutableList<ImageView> = mutableListOf()
+    private var activeObstacles = 0
+
+    private var projectileHandler: Handler = Handler()
+    private lateinit var projectileRunnable: Runnable
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -43,19 +48,28 @@ class MainActivity : AppCompatActivity() {
             true
         }
 
+        projectileRunnable = Runnable {
+            if (isRunning) {
+                fireProjectile()
+                projectileHandler.postDelayed(projectileRunnable, 1000)
+            }
+        }
+
         runnable = Runnable { createObstacles() }
         handler.postDelayed(runnable, 200)
+        projectileHandler.postDelayed(projectileRunnable, 1000)
     }
 
     private fun createObstacles() {
-        if (!isRunning) return
+        if (!isRunning || activeObstacles >= 3) return
 
-        if (obstacleCounter % 4 == 0) {
+        if (obstacleCounter % 4 == 0 && activeObstacles < 3) {
             val obstacle = ImageView(this)
             obstacle.setImageResource(getRandomObstacle())
             obstacle.x = (0..(mainLayout.width - obstacle.width)).random().toFloat()
             obstacle.y = 0f
             mainLayout.addView(obstacle)
+            activeObstacles++
 
             val obstacleSpeed = (3..7).random()
 
@@ -67,6 +81,7 @@ class MainActivity : AppCompatActivity() {
 
                     if (obstacle.y + obstacle.height >= mainLayout.height) {
                         mainLayout.removeView(obstacle)
+                        activeObstacles--
                         return
                     }
 
@@ -77,11 +92,22 @@ class MainActivity : AppCompatActivity() {
                             projectile.tag = true
                             score += 100
                             counter.text = score.toString()
+                            activeObstacles--
                             if (score >= 1500) {
                                 score = 0
                                 showBigWinPopup()
                             }
+                            return
                         }
+                    }
+
+                    if (obstacle.isCollision(ship)) {
+                        isRunning = false
+                        handler.removeCallbacks(runnable)
+                        projectileHandler.removeCallbacks(projectileRunnable)
+                        val intent = Intent(this@MainActivity, splash::class.java)
+                        startActivity(intent)
+
                     }
 
                     handler.postDelayed(this, 20)
@@ -158,6 +184,7 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
         isRunning = false
         handler.removeCallbacks(runnable)
+        projectileHandler.removeCallbacks(projectileRunnable)
         for (projectile in projectiles) {
             mainLayout.removeView(projectile)
         }

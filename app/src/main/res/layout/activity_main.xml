@@ -27,11 +27,11 @@
 
     <ImageView
         android:id="@+id/ship"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="140dp"
+        android:layout_height="181dp"
         android:layout_alignParentStart="true"
         android:layout_alignParentBottom="true"
         android:layout_marginStart="0dp"
         android:layout_marginBottom="33dp"
-        android:src="@drawable/ship" />
+        android:background="@drawable/ship" />
 </RelativeLayout>
